@@ -7,45 +7,86 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 sessionInfo()
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r initial}
+```{r initial, echo=FALSE}
 library(tidyverse)
-#for the heatmap
 library(ggplot2)
 library(ggmap)
-library(RColorBrewer)
+library(stringr)
+library(viridis)
+
 if(!file.exists("data")){dir.create("data")}
-NYPD_Shooting_Incident_Data__Historic_ <- read.csv("data/NYPD_Shooting_Incident_Data__Historic_.csv")
-
-
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r data_cleaning, echo=FALSE}
+#Read the data
+NYPD_Data <- read.csv("data/NYPD_Shooting_Incident_Data__Historic_.csv")
+#load a map of New York from Google
+NY_map <- get_map('New York', zoom = 12, color="bw")
+#Clean the date column
+NYPD_Data$Year <- substr(NYPD_Data$OCCUR_DATE, nchar(NYPD_Data$OCCUR_DATE)-3, nchar(NYPD_Data$OCCUR_DATE))
+NYPD_data_model <- as.data.frame(table(NYPD_Data$Year))
+NYPD_data_model$Year <- as.numeric(as.character(NYPD_data_model$Var1))
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## NYPD Shooting Incident Project Summary
+
+In this report, we will take a look at the shooting Incidents happened between 2006 and 2020 data from NYPD (https://catalog.data.gov/dataset). We will look at the historic trend of shooting and where they are concentrated. 
+The Covid-19 has caused countries to lock down and economies to slow. People have lost jobs and families due to the pandemic. Between dwindling savings and an invisible killer in the air, cities have seen a rise on violent crime in 2020. The question to answer is whether the Covid-19 pandemic has lead to increase in violent crime? 
+
+## Shooting Incidents in New York over the years
+
+### What are my assumptions?
+A shooting incident is a violent crime against a victim that may have resulted injury or death. The NYPD categorizing and reports this incident type consistently over the years. 
+
+Not all incidents that happened would have reported but we are going to assume that the rate of incident reporting are similar between 2006 and 2020. 
+
+### What are my potential biases? 
+1. Data came from a single source with no cross-checking. This could disconnect the analysis from reality. 
+2. An overall negative/pessimistic outlook caused by the pandemic.
+3. Not familiar with American culture and way of life. 
+
+## Shooting Incidents between 2006 and 2020
 
 ```{r visualization_data}
-
+#plot graph 1
+ggplot(data=NYPD_data_model, aes(x=Year,y=Freq)) + 
+             geom_line(size=1) + geom_point(shape=15, colour='red', fill='black', size=3) +
+             scale_y_continuous(breaks=seq(900,2100,by=100)) +
+             scale_x_continuous(breaks=2006:2020) +
+             theme(axis.title.x=element_text(), axis.title.y=element_text(),
+                   panel.grid.minor = element_blank()) + 
+             ggtitle("Shooting Incidents in New York over the Year 2006-2020")
 
 ```
+
+### Analysing the Data
+
+Since 2006, the shooting incidents have gradually decreases over 15 years from over 2000 incidents in 2006 to less than 1000 incidents in 2019. New York was relatively safe until the start of pandemic in 2020. In 2020, The number of shooting incidents doubled the previous year of 2019. A crime heatmap shows where the incidents are occurring. Notably, a large concentration of incidents in Brooklyn collectively over 15 years. 
+
+### Conclusion
+
+It is difficult to draw any conclusion currently. Further granularity into the time frame (month) of when did the shoot started to occur again. The heatmap whilst useful to pinpoint dangerous neighborhood, should focus on the year 2019 if we were to focus on the outbreak of shooting incidents during the pandemic. There is a perception bias caused by a 15-year crime heatmap is that an area that had 2006 crimes will remain crime-'hot' which is not true.
+
+To answer the question we asked, we will also have to look at New York city policies and news for Covid-19 to the incidents to see if any pattern arise and to make sense of it.  
 
 
 ```{r visualization_heatmap}
-
+#plot graph 2 
+ggmap(NY_map) +
+  stat_density2d(data = NYPD_Data, aes(x = Longitude, y = Latitude, fill = ..density..), geom = 'tile', contour = F, alpha = .5) +
+  scale_fill_viridis(option = 'inferno') +
+  labs(title = str_c('Brooklyn has the highest concentration of \nshooting incidents')
+       ,fill = str_c('Number of', '\nshooting incidents')
+       ) +
+  theme(text = element_text(color = "#444444")
+        ,plot.title = element_text(size = 18, face = 'bold')
+        ,plot.subtitle = element_text(size = 10)
+        ,axis.text = element_blank()
+        ,axis.title = element_blank()
+        ,axis.ticks = element_blank()
+        )
 
 ```
+Resources and References:
+1. . Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The R Journal, 5(1), 144-161. URL http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
