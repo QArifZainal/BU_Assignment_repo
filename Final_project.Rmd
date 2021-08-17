@@ -1,0 +1,98 @@
+---
+title: "Covid 19 Report"
+author: "Q Arif"
+date: "8/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Covid-19 World Trends 
+
+In March of 2020, The World Health Organization (WHO) declared Covid-19 as a pandemic. It has been over a year since the outbreak of Covid-19 and the world has not been the same. This report looks at the world trend of Covid-19 and ask whether the pandemic is going to end anytime soon. 
+
+
+```{r initial, echo=TRUE, message=FALSE, warning=FALSE}
+#initialized libraries
+library(tidyverse)
+library(ggplot2)
+
+# Import the data
+raw_data_confirmed <- read.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+raw_data_deaths <- read.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+raw_data_recovered <- read.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
+
+```
+### The Data 
+
+The data used in this report is from Center for Systems Science and Engineering (CSSE) at John Hopkins University (https://github.com/CSSEGISandData/COVID-19). The data is aggregated from multiple sources and is considered reliable. 
+
+
+```{r data_cleaning, echo=TRUE, message=FALSE, warning=FALSE}
+# data cleaning - summarize to country level
+
+confirmed <- raw_data_confirmed %>% gather(key="date", value="confirmed", -c(Country.Region, Province.State, Lat, Long)) %>% group_by(Country.Region, date) %>% summarize(confirmed=sum(confirmed))
+
+deaths <- raw_data_deaths %>% gather(key="date", value="deaths", -c(Country.Region, Province.State, Lat, Long)) %>% group_by(Country.Region, date) %>% summarize(deaths=sum(deaths))
+
+recovered <- raw_data_recovered %>% gather(key="date", value="recovered", -c(Country.Region, Province.State, Lat, Long)) %>% group_by(Country.Region, date) %>% summarize(recovered=sum(recovered))
+summary(confirmed)
+
+country <- full_join(confirmed, deaths) %>% full_join(recovered)
+# Fix date 
+country$date <- country$date %>% sub("X", "", .) %>% as.Date("%m.%d.%y")
+
+# Aggregrate
+world <- country %>% group_by(date) %>% summarize(confirmed=sum(confirmed), deaths=sum(deaths), recovered=sum(recovered))  %>% mutate(days = date - first(date) + 1)
+world <- subset(world, recovered != 0)
+```
+### Preparing the Data
+The raw data is then processed and sum into a total to represent world figures. Below is the summary of the data table. 
+
+```{r summary}
+# SUMMARY STATISTICS
+summary(world)
+
+```
+
+
+```{r plots}
+
+# World confirmed
+plot1 <- ggplot(world, aes(x=date, y=confirmed)) + geom_line() +
+  theme_minimal() +
+  labs(title = "World Confirmed Cases", y= "Daily confirmed cases") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot2 <- ggplot(world, aes(x=date, y=deaths)) + geom_line() +
+  theme_minimal() +
+  labs(title = "World Death Cases", y= "Daily death cases") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot3 <- ggplot(world, aes(x=date, y=recovered)) + geom_line() +
+  theme_minimal() +
+  labs(title = "World Recovered Cases", y= "Daily recovered cases") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot4 <-world %>% gather("Type", "Cases", -c(date, days)) %>%
+ggplot(aes(x=date, y=Cases, colour=Type)) + geom_bar(stat="identity", width=0.5, fill= "white") +
+  theme_minimal() +
+  labs(title = "Covid-19 Global Cases", y= "Daily cases") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+require(gridExtra)
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+
+
+```
+### Analysing the Data
+
+The graphs show that that despite vaccines have made available since early 2021, the cases and deaths are still increasing albeit no longer exponentially. The cumulative daily cases are still increasing linearly, showing measures are having a positive effect at curbing the pandemic. This can be attributed to lock down policies and the vaccination rollout in 2021, reducing the spread of covid-19 virus. It can be noted that there are slight 'bumps' on the confirmed cases line, representing waves of covid cases potentially due to breakouts of more virulent strains. 
+
+### Conclusion
+
+This is report looks at the pandemic at a very high level and it would be difficult to draw a good conclusion without further studies. The plots suggest that the pandemic is not going to end anytime soon and is at slowing becoming an endemic. We should be expecting a more significant reduced number of deaths due to the introduction of vaccines. Perhaps a closer look to where and how these deaths are happening will point the reason why the pandemic is still ongoing. 
+
+The data could be biased as less economically developed countries are under- or not reporting their covid 19 cases. Due to how the vaccine distribution, these countries may continue to suffer from the pandemic for a longer time, and allow the virus to continue to mutate thus prolonging it. 
