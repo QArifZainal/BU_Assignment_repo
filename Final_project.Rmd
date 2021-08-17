@@ -87,6 +87,8 @@ grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
 
 
 ```
+
+
 ### Analysing the Data
 
 The graphs show that that despite vaccines have made available since early 2021, the cases and deaths are still increasing albeit no longer exponentially. The cumulative daily cases are still increasing linearly, showing measures are having a positive effect at curbing the pandemic. This can be attributed to lock down policies and the vaccination rollout in 2021, reducing the spread of covid-19 virus. It can be noted that there are slight 'bumps' on the confirmed cases line, representing waves of covid cases potentially due to breakouts of more virulent strains. 
